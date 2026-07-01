@@ -47,9 +47,9 @@
       overflow:hidden; 
     }
 
-    /* 上半分: カレンダー（約70%）*/
+    /* 上半分: カレンダー（3分の2）*/
     .calendar-wrap { 
-      flex:1;
+      flex:0 0 66.66%;
       min-height:0;
       padding:8px 12px; 
       background:var(--bg); 
@@ -57,34 +57,9 @@
       border-bottom:1px solid var(--line);
     }
 
-    /* リサイザーバー */
-    .resizer {
-      height:8px;
-      background:var(--line);
-      cursor:row-resize;
-      user-select:none;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      transition:background 150ms;
-    }
-
-    .resizer:hover {
-      background:var(--orange);
-    }
-
-    .resizer::before {
-      content:'';
-      width:40px;
-      height:4px;
-      background:var(--muted);
-      border-radius:2px;
-      opacity:0.5;
-    }
-
-    /* 下半分: リスト（約30%）*/
+    /* 下半分: リスト（3分の1）*/
     .list-wrap { 
-      flex:0 0 auto;
+      flex:0 0 33.33%;
       min-height:0;
       padding:12px 16px; 
       background:var(--bg-subtle); 
@@ -250,15 +225,12 @@
       <h1>課題カレンダー</h1>
       <p id="group-tag">読み込み中</p>
     </div>
-    <div style="font-family: 'JetBrains Mono', monospace; font-weight:700; font-size:0.85rem; color:var(--orange-deep); border:1px solid var(--orange); padding:6px 8px; border-radius:6px;">スマホ版</div>
   </header>
 
   <main>
     <div class="calendar-wrap">
       <div id="calendar"></div>
     </div>
-
-    <div class="resizer" id="resizer"></div>
 
     <div class="list-wrap">
       <h2 id="selected-date-title" class="selected-date-title">日付を選択してください</h2>
@@ -291,41 +263,6 @@
     let calendar = null;
     let selectedDateStr = null;
     const loadingEl = document.getElementById('loading');
-
-    // リサイザー機能
-    (function setupResizer() {
-      const resizer = document.getElementById('resizer');
-      const calendarWrap = document.querySelector('.calendar-wrap');
-      const listWrap = document.querySelector('.list-wrap');
-      let isResizing = false;
-
-      resizer.addEventListener('mousedown', () => { isResizing = true; });
-      resizer.addEventListener('touchstart', () => { isResizing = true; });
-
-      document.addEventListener('mouseup', () => { isResizing = false; });
-      document.addEventListener('touchend', () => { isResizing = false; });
-
-      document.addEventListener('mousemove', (e) => { if (isResizing) resize(e.clientY); });
-      document.addEventListener('touchmove', (e) => { if (isResizing) resize(e.touches[0].clientY); });
-
-      function resize(clientY) {
-        const main = document.querySelector('main');
-        const headerHeight = 56;
-        const resizerHeight = 8;
-        const mainTop = headerHeight;
-        const mainHeight = window.innerHeight - headerHeight;
-
-        const newCalendarHeight = clientY - mainTop;
-        const minCalendarHeight = mainHeight * 0.4; // 最小40%
-        const maxCalendarHeight = mainHeight * 0.9; // 最大90%
-
-        if (newCalendarHeight >= minCalendarHeight && newCalendarHeight <= maxCalendarHeight) {
-          calendarWrap.style.flex = `0 0 ${newCalendarHeight}px`;
-          listWrap.style.flex = `0 0 ${mainHeight - newCalendarHeight - resizerHeight}px`;
-          if (calendar) calendar.updateSize();
-        }
-      }
-    })();
 
     function showLoading(flag) { loadingEl.style.display = flag ? 'block' : 'none'; }
 
@@ -453,7 +390,7 @@
         height: 'auto',
         contentHeight: 'auto',
         handleWindowResize: true,
-        headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+        headerToolbar: { left: 'prev,next', center: 'title', right: '' },
         dayMaxEventRows: 5,
         dayMaxEvents: true,
         eventDisplay: 'block',

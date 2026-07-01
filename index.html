@@ -47,18 +47,45 @@
       overflow:hidden; 
     }
 
-    /* 上半分: カレンダー（約50%）*/
+    /* 上半分: カレンダー（約70%）*/
     .calendar-wrap { 
-      flex:0 0 50%;
+      flex:1;
+      min-height:0;
       padding:8px 12px; 
       background:var(--bg); 
       overflow:auto;
       border-bottom:1px solid var(--line);
     }
 
-    /* 下半分: リスト（約50%）*/
+    /* リサイザーバー */
+    .resizer {
+      height:8px;
+      background:var(--line);
+      cursor:row-resize;
+      user-select:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:background 150ms;
+    }
+
+    .resizer:hover {
+      background:var(--orange);
+    }
+
+    .resizer::before {
+      content:'';
+      width:40px;
+      height:4px;
+      background:var(--muted);
+      border-radius:2px;
+      opacity:0.5;
+    }
+
+    /* 下半分: リスト（約30%）*/
     .list-wrap { 
-      flex:0 0 50%;
+      flex:0 0 auto;
+      min-height:0;
       padding:12px 16px; 
       background:var(--bg-subtle); 
       overflow:auto;
@@ -127,17 +154,17 @@
     /* リスト側 */
     .selected-date-title { 
       color:var(--ink); 
-      margin:0 0 12px 0; 
+      margin:0 0 8px 0; 
       font-weight:900; 
-      font-size:1.1rem;
+      font-size:0.95rem;
       border-bottom:2px solid var(--orange);
-      padding-bottom:8px;
+      padding-bottom:6px;
     }
 
     .timeline-list { 
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:6px;
       overflow-y:auto;
       flex:1;
     }
@@ -145,10 +172,11 @@
     .task-card { 
       background:#fff; 
       border:1px solid var(--line); 
-      padding:12px; 
-      border-left:6px solid var(--orange); 
-      border-radius:8px;
+      padding:8px 10px; 
+      border-left:4px solid var(--orange); 
+      border-radius:6px;
       transition:all 150ms;
+      font-size:0.9rem;
     }
 
     .task-card:hover {
@@ -159,31 +187,31 @@
     .task-title { 
       font-weight:800; 
       margin:0; 
-      font-size:1rem;
+      font-size:0.95rem;
     }
 
     .task-meta { 
       color:var(--muted); 
-      font-size:0.9rem; 
-      margin-top:6px; 
+      font-size:0.8rem; 
+      margin-top:4px; 
     }
 
     .task-subject {
       font-weight:800;
       color:var(--orange-deep);
       background:#fff6f0;
-      padding:4px 8px;
-      border-radius:4px;
-      font-size:0.85rem;
+      padding:2px 6px;
+      border-radius:3px;
+      font-size:0.8rem;
       display:inline-block;
-      margin-bottom:8px;
+      margin-bottom:4px;
     }
 
     .empty-state {
       text-align:center;
       color:var(--muted);
-      padding:32px 12px;
-      font-size:0.95rem;
+      padding:16px 12px;
+      font-size:0.9rem;
     }
 
     /* 読み込み表示 */
@@ -203,7 +231,7 @@
     @media (max-width:768px) {
       .fc .fc-daygrid-day-frame { min-height:60px; }
       .fc .fc-daygrid-event { font-size:0.65rem; }
-      .selected-date-title { font-size:1rem; }
+      .selected-date-title { font-size:0.9rem; }
     }
 
     @media (max-width:420px) {
@@ -211,8 +239,8 @@
       .fc .fc-daygrid-event { font-size:0.6rem; }
       header { padding:10px 12px; }
       header h1 { font-size:0.95rem; }
-      .selected-date-title { font-size:0.95rem; }
-      .task-title { font-size:0.95rem; }
+      .selected-date-title { font-size:0.85rem; }
+      .task-title { font-size:0.9rem; }
     }
   </style>
 </head>
@@ -229,6 +257,8 @@
     <div class="calendar-wrap">
       <div id="calendar"></div>
     </div>
+
+    <div class="resizer" id="resizer"></div>
 
     <div class="list-wrap">
       <h2 id="selected-date-title" class="selected-date-title">日付を選択してください</h2>
@@ -261,6 +291,41 @@
     let calendar = null;
     let selectedDateStr = null;
     const loadingEl = document.getElementById('loading');
+
+    // リサイザー機能
+    (function setupResizer() {
+      const resizer = document.getElementById('resizer');
+      const calendarWrap = document.querySelector('.calendar-wrap');
+      const listWrap = document.querySelector('.list-wrap');
+      let isResizing = false;
+
+      resizer.addEventListener('mousedown', () => { isResizing = true; });
+      resizer.addEventListener('touchstart', () => { isResizing = true; });
+
+      document.addEventListener('mouseup', () => { isResizing = false; });
+      document.addEventListener('touchend', () => { isResizing = false; });
+
+      document.addEventListener('mousemove', (e) => { if (isResizing) resize(e.clientY); });
+      document.addEventListener('touchmove', (e) => { if (isResizing) resize(e.touches[0].clientY); });
+
+      function resize(clientY) {
+        const main = document.querySelector('main');
+        const headerHeight = 56;
+        const resizerHeight = 8;
+        const mainTop = headerHeight;
+        const mainHeight = window.innerHeight - headerHeight;
+
+        const newCalendarHeight = clientY - mainTop;
+        const minCalendarHeight = mainHeight * 0.4; // 最小40%
+        const maxCalendarHeight = mainHeight * 0.9; // 最大90%
+
+        if (newCalendarHeight >= minCalendarHeight && newCalendarHeight <= maxCalendarHeight) {
+          calendarWrap.style.flex = `0 0 ${newCalendarHeight}px`;
+          listWrap.style.flex = `0 0 ${mainHeight - newCalendarHeight - resizerHeight}px`;
+          if (calendar) calendar.updateSize();
+        }
+      }
+    })();
 
     function showLoading(flag) { loadingEl.style.display = flag ? 'block' : 'none'; }
 
@@ -366,7 +431,7 @@
           <div class="task-subject">${escapeHtml(subject)}</div>
           <div class="task-title">${escapeHtml(title)}</div>
           ${content ? `<div class="task-meta">${escapeHtml(content)}</div>` : ''}
-          <div class="task-meta" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-weight:700;">${escapeHtml(timeLabel)}</div>
+          <div class="task-meta" style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-weight:700;">${escapeHtml(timeLabel)}</div>
         `;
         listEl.appendChild(card);
       });

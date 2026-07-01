@@ -42,11 +42,21 @@
 
     main { display:flex; flex-direction:column; height:calc(100vh - 56px); overflow:hidden; }
 
-    /* カレンダーが画面の大部分を占める */
+    /* カレンダーと下部リストを同等配分 */
     .calendar-wrap { 
       flex:1; 
       padding:8px 12px; 
       background:var(--bg); 
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      border-bottom:1px solid var(--line);
+    }
+
+    .list-wrap { 
+      flex:1; 
+      padding:12px; 
+      background:var(--bg-subtle); 
       overflow:auto;
       display:flex;
       flex-direction:column;
@@ -75,7 +85,7 @@
 
     /* 日セル */
     .fc .fc-daygrid-day-frame { 
-      min-height:100px; 
+      min-height:90px; 
       padding:4px; 
       display:flex;
       flex-direction:column;
@@ -92,7 +102,7 @@
 
     .fc .fc-daygrid-event {
       border-radius:4px;
-      padding:2px 4px;
+      padding:3px 5px;
       font-weight:700;
       font-size:0.7rem;
       white-space:nowrap;
@@ -101,13 +111,70 @@
       background:var(--orange);
       border:none;
       color:#fff;
-      line-height:1.2;
+      line-height:1.3;
       height:auto;
-      max-height:16px;
+      max-height:18px;
+      cursor:pointer;
+      transition:all 150ms;
+    }
+
+    .fc .fc-daygrid-event:hover {
+      background:var(--orange-deep);
+      box-shadow:0 2px 8px rgba(232, 89, 12, 0.3);
     }
 
     .fc .fc-daygrid-day.fc-day-other { background:#fafafa; opacity:0.5; }
     .fc .fc-daygrid-day.fc-day-today { background:#fff9f6; }
+    .fc .fc-daygrid-day { cursor:pointer; }
+
+    /* リスト側 */
+    .selected-date-title { 
+      color:var(--muted); 
+      margin:0 0 10px 0; 
+      font-weight:700; 
+      font-size:0.95rem;
+    }
+
+    .timeline-list { 
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow-y:auto;
+    }
+
+    .task-card { 
+      background:#fff; 
+      border:1px solid var(--line); 
+      padding:10px; 
+      border-left:6px solid var(--orange); 
+      border-radius:8px;
+      cursor:pointer;
+      transition:all 150ms;
+    }
+
+    .task-card:hover {
+      border-color:var(--orange);
+      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .task-title { font-weight:800; margin:6px 0 0 0; }
+    .task-meta { color:var(--muted); font-size:0.9rem; margin-top:6px; }
+    .task-subject {
+      font-weight:800;
+      color:var(--orange-deep);
+      background:#fff6f0;
+      padding:4px 6px;
+      border-radius:4px;
+      font-size:0.85rem;
+      display:inline-block;
+      margin-bottom:4px;
+    }
+
+    .empty-state {
+      text-align:center;
+      color:var(--muted);
+      padding:24px 12px;
+    }
 
     /* 読み込み表示 */
     .loading { 
@@ -149,6 +216,13 @@
     <div class="calendar-wrap">
       <div id="calendar"></div>
     </div>
+
+    <div class="list-wrap">
+      <h2 id="selected-date-title" class="selected-date-title">日付を選択してください</h2>
+      <div id="timeline-list" class="timeline-list">
+        <p class="empty-state">カレンダーの日付をタップするか、予定をタップすると詳細が表示されます。</p>
+      </div>
+    </div>
   </main>
 
   <div class="loading" id="loading">読み込み中…</div>
@@ -172,6 +246,7 @@
     let pendingSnapshotTimer = null;
     let latestSnapshot = null;
     let calendar = null;
+    let selectedDateStr = null;
     const loadingEl = document.getElementById('loading');
 
     function showLoading(flag) { loadingEl.style.display = flag ? 'block' : 'none'; }
@@ -206,7 +281,7 @@
       }, 220);
     }
 
-    // スナップショットを適用：イベント配列を作る
+    // スナップショットを適用
     function applySnapshot(snapshot) {
       showLoading(true);
       const events = [];
@@ -240,8 +315,55 @@
       calendar.addEventSource(events);
       calendar.render();
 
-      // UX: 少し遅延してローディングを消す
+      // 選択中の日付があれば再表示
+      if (selectedDateStr) {
+        updateTimeline(selectedDateStr);
+      }
+
       setTimeout(() => showLoading(false), 120);
+    }
+
+    // 日付を選択したときのリスト表示
+    function updateTimeline(dateStr) {
+      selectedDateStr = dateStr;
+      const titleEl = document.getElementById('selected-date-title');
+      const listEl = document.getElementById('timeline-list');
+      const parts = dateStr.split('-');
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      titleEl.innerText = `${month}月${day}日の課題`;
+
+      const filtered = allAssignments.filter(item => getEventDate(item) === dateStr);
+      if (!filtered || filtered.length === 0) {
+        listEl.innerHTML = `<p class="empty-state">この日の締め切りはありません。</p>`;
+        return;
+      }
+
+      listEl.innerHTML = '';
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'task-card';
+
+        const timeLabel = getTimeLabel(item);
+        const subject = item.subject || item.type || '未設定';
+        const title = item.title || '無題';
+        const content = item.content || '';
+
+        card.innerHTML = `
+          <div class="task-subject">${escapeHtml(subject)}</div>
+          <div class="task-title">${escapeHtml(title)}</div>
+          ${content ? `<div class="task-meta">${escapeHtml(content)}</div>` : ''}
+          <div class="task-meta" style="margin-top:4px;font-family:'JetBrains Mono',monospace;">${escapeHtml(timeLabel)}</div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      listEl.scrollTop = 0;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
     }
 
     // カレンダー初期化
@@ -257,46 +379,18 @@
         dayMaxEventRows: 5,
         dayMaxEvents: true,
         eventDisplay: 'block',
+        // 日付クリック時
+        dateClick: function(info) {
+          const dateStr = info.dateStr;
+          updateTimeline(dateStr);
+        },
+        // イベントクリック時（日付選択とリスト表示）
         eventClick: function(info) {
-          const raw = info.event.extendedProps.raw || {};
-          showDetail(raw);
+          const dateStr = info.event.startStr;
+          updateTimeline(dateStr);
         }
       });
       calendar.render();
-    }
-
-    function showDetail(raw) {
-      const timeLabel = getTimeLabel(raw);
-      const subject = raw.subject || raw.type || '未設定';
-      const title = raw.title || '無題';
-      const msg = `【${subject}】\n${title}\n${timeLabel}`;
-      showTemporaryNotice(msg);
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
-    }
-
-    // 簡易通知
-    function showTemporaryNotice(msg) {
-      const el = document.createElement('div');
-      el.style.position = 'fixed'; 
-      el.style.left = '50%'; 
-      el.style.bottom = '20px'; 
-      el.style.transform = 'translateX(-50%)';
-      el.style.background = '#fff'; 
-      el.style.border = '1px solid var(--line)'; 
-      el.style.padding = '12px 14px'; 
-      el.style.borderRadius = '8px';
-      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; 
-      el.style.zIndex = '9999'; 
-      el.style.maxWidth = '90vw';
-      el.style.whiteSpace = 'pre-wrap';
-      el.style.wordBreak = 'break-word';
-      el.innerText = msg;
-      document.body.appendChild(el);
-      setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 2200);
     }
 
     // 初期化と Firestore 購読

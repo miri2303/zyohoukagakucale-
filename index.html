@@ -2,26 +2,56 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>課題カレンダー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>課題ダッシュボード</title>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-gray-50 text-gray-900 font-sans">
 
-  <div class="p-4 max-w-4xl mx-auto">
-    <header class="flex justify-between items-center mb-6 border-b pb-4">
-      <h1 class="text-lg font-bold tracking-tight text-gray-800">課題ダッシュボード</h1>
-      <span id="group-tag" class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded">読み込み中</span>
-    </header>
+  <style>
+    /* スマホ画面で文字が絶対に重ならないためのFullCalendar微調整 */
+    .fc { font-size: 0.75rem !important; }
+    .fc .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 700; color: #1f2937; }
+    .fc .fc-button { padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; background-color: #111111 !important; border: none !important; }
+    .fc .fc-button-active { background-color: #10b981 !important; }
+    .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
+    /* イベント表示をドット(点)か極小バーにして重なりを撲滅 */
+    .fc-daygrid-event { padding: 1px 2px !important; margin-top: 1px !important; font-size: 0.65rem !important; border-radius: 3px !important; line-height: 1.1 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fc-day-today { background-color: #f0fdf4 !important; }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col h-screen overflow-hidden select-none">
+
+  <header class="bg-gray-800 border-b border-gray-700 px-4 py-3 flex justify-between items-center shrink-0">
+    <div>
+      <h1 class="text-sm font-bold text-white tracking-wide">📅 課題カレンダー</h1>
+      <p id="group-tag" class="text-[10px] text-emerald-400 mt-0.5 font-mono">読み込み中...</p>
+    </div>
+    <div class="text-[11px] bg-gray-700 px-2 py-1 rounded text-gray-300 font-medium">スマホ最適化版</div>
+  </header>
+
+  <main class="flex-1 flex flex-col overflow-hidden">
     
-    <div id="calendar" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"></div>
-  </div>
+    <div class="bg-white text-gray-800 p-3 shadow-md shrink-0 h-[48%] overflow-hidden">
+      <div id="calendar" class="h-full"></div>
+    </div>
+
+    <div class="flex-1 bg-gray-900 p-4 overflow-y-auto border-t border-gray-800">
+      <div class="flex justify-between items-center mb-3">
+        <h2 id="selected-date-title" class="text-xs font-bold text-gray-400 tracking-wider">📅 選択された日の課題</h2>
+        <span id="task-count-badge" class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold">0件</span>
+      </div>
+      
+      <div id="timeline-list" class="space-y-3">
+        <p class="text-xs text-gray-500 text-center py-6">カレンダーの日付をタップすると、その日の課題がここに詳しく並びます。</p>
+      </div>
+    </div>
+  </main>
 
   <script>
+    // Firebase設定
     const firebaseConfig = {
       apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
       authDomain: "zyohokagakucale.firebaseapp.com",
@@ -32,68 +62,109 @@
       measurementId: "G-PW8S7FHC19"
     };
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const firestore = firebase.firestore();
 
+    let allAssignments = []; // グループの全課題データを保持する配列
+
+    // LIFF 初期化
     liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
       if (!liff.isLoggedIn()) {
         liff.login();
         return;
       }
       
-      const context = liff.getContext();
-      const userId = context.userId;
+      const userId = liff.getContext().userId;
 
-      db.collection("users").doc(userId).get().then((userDoc) => {
+      // ユーザーの所属グループを引く
+      firestore.collection("users").doc(userId).get().then((userDoc) => {
         if (!userDoc.exists) {
-          alert("グループ情報が見つかりません。LINEから初期設定を行ってください。");
+          document.getElementById("timeline-list").innerHTML = `<p class="text-rose-400 text-xs text-center py-4">⚠️ LINE側で「グループ作成」か「合言葉」の登録を先に行ってください。</p>`;
           return;
         }
         
-        const userData = userDoc.data();
-        const groupId = userData.groupId;
-        
-        document.getElementById("group-tag").innerText = `GROUP ID: ${groupId}`;
+        const groupId = userDoc.data().groupId;
+        document.getElementById("group-tag").innerText = `🔑 GROUP ID: ${groupId}`;
 
+        // カレンダー設定
         const calendarEl = document.getElementById('calendar');
         const calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
           locale: 'ja',
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek'
-          },
-          events: []
+          height: '100%',
+          handleWindowResize: true,
+          headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+          // 日付をタップしたときの処理（下段のタイムラインを更新）
+          dateClick: function(info) {
+            updateTimeline(info.dateStr);
+          }
         });
         calendar.render();
 
-        // フィルターを外してグループに紐づくすべての課題をカレンダーにリアルタイムマッピング
-        db.collection("groups").doc(groupId).collection("assignments")
+        // Firestoreから課題データをリアルタイムに監視取得
+        firestore.collection("groups").doc(groupId).collection("assignments")
           .onSnapshot((snapshot) => {
+            allAssignments = [];
             const events = [];
+            
             snapshot.forEach((doc) => {
               const data = doc.data();
-              const datePart = data.deadline ? data.deadline.split(" ")[0] : null;
-              if (datePart) {
+              if (data.deadline) {
+                allAssignments.push(data);
+                const datePart = data.deadline.split(" ")[0];
                 events.push({
-                  title: `[${data.subject}] ${data.title}`,
-                  start: datePart, 
-                  color: '#e11d48' 
+                  title: `${data.subject}..`, // マスが狭いので科目の先頭だけ
+                  start: datePart,
+                  color: '#e11d48'
                 });
               }
             });
+
             calendar.removeAllEvents();
             calendar.addEventSource(events);
-          }, (error) => {
-            alert("データ同期エラー: " + error.message);
+            
+            // 初期状態として「今日」の予定を表示
+            const todayStr = new Date().toISOString().split('T')[0];
+            updateTimeline(todayStr);
           });
 
-      }).catch((err) => {
-        alert("ユーザー情報の取得に失敗しました: " + err.message);
+      }).catch(err => alert("Firestoreユーザー参照エラー: " + err.message));
+    }).catch(err => alert("LIFF起動エラー: " + err.message));
+
+    // 下段のタイムラインを更新する関数（重なりを回避しスマホで見やすく表示）
+    function updateTimeline(dateStr) {
+      const titleEl = document.getElementById("selected-date-title");
+      const listEl = document.getElementById("timeline-list");
+      const badgeEl = document.getElementById("task-count-badge");
+
+      // 日付表示のフォーマット変更 (例: 2026-07-01 -> 7月1日の課題)
+      const parts = dateStr.split("-");
+      titleEl.innerText = `📅 ${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日の課題`;
+
+      // 選択された日付に該当する課題をフィルタリング
+      const filtered = allAssignments.filter(item => item.deadline.startsWith(dateStr));
+      badgeEl.innerText = `${filtered.length}件`;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-gray-500 text-center py-8">🎉 この日の締め切り課題はありません。無罪！</p>`;
+        return;
+      }
+
+      // タイムラインをレンダリング（縦並びで絶対に文字が潰れない）
+      listEl.innerHTML = "";
+      filtered.forEach(item => {
+        const timePart = item.deadline.split(" ")[1] || "23:59";
+        const div = document.createElement("div");
+        div.className = "bg-gray-800 border-l-4 border-rose-500 p-3 rounded-r-lg shadow-sm space-y-1";
+        div.innerHTML = `
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-bold text-white bg-gray-700 px-2 py-0.5 rounded">${item.subject || "未設定"}</span>
+            <span class="text-[11px] font-mono font-bold text-rose-400">⏰ ${timePart} 締切</span>
+          </div>
+          <h3 class="text-sm font-bold text-gray-100 pt-0.5">${item.title || "無題"}</h3>
+        `;
+        listEl.appendChild(div);
       });
-    }).catch((err) => {
-      alert("LIFFの起動に失敗しました: " + err.message);
-    });
+    }
   </script>
 </body>
 </html>

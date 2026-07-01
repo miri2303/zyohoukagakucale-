@@ -26,10 +26,6 @@
       --orange: #E8590C;
       --orange-deep: #C2410C;
       --line: #E6E2DD;
-      --calendar-height: 55vh; /* 上半分より広めに確保 */
-      --rect-size: 8px;       /* 日セル内の長方形サイズ（高さ） */
-      --rect-gap: 4px;
-      --rect-max: 8;          /* 日セルに表示する長方形の最大数 */
     }
 
     * { box-sizing: border-box; }
@@ -46,12 +42,25 @@
 
     main { display:flex; flex-direction:column; height:calc(100vh - 56px); overflow:hidden; }
 
-    /* カレンダー領域を広く */
-    .calendar-wrap { height:var(--calendar-height); padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
-    .list-wrap { flex:1; padding:12px; background:var(--bg-subtle); overflow:auto; }
+    /* カレンダーが画面の大部分を占める */
+    .calendar-wrap { 
+      flex:1; 
+      padding:8px 12px; 
+      background:var(--bg); 
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+    }
 
-    /* FullCalendar 調整（四角基調） */
-    .fc { font-size:0.95rem; }
+    /* FullCalendar 調整 */
+    .fc { 
+      font-size:0.95rem; 
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+    .fc .fc-col-header-cell { padding:8px 2px; }
+    .fc .fc-daygrid-day-number { font-weight:800; color:var(--ink); padding:4px 2px; }
     .fc .fc-toolbar-title { font-weight:900; font-size:1.05rem; }
     .fc .fc-button {
       padding:6px 8px; font-size:0.85rem; border-radius:6px;
@@ -63,44 +72,67 @@
     .fc .fc-button-primary:not(:disabled):active {
       background:var(--orange); color:#fff; border-color:var(--orange);
     }
-    .fc .fc-daygrid-day-number { font-weight:800; color:var(--ink); }
+
+    /* 日セル */
+    .fc .fc-daygrid-day-frame { 
+      min-height:100px; 
+      padding:4px; 
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* イベントを横棒で表示 */
+    .fc .fc-daygrid-day-events { 
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      flex:1;
+      overflow:hidden;
+    }
+
     .fc .fc-daygrid-event {
-      border-radius:6px; padding:4px 6px; font-weight:800; font-size:0.78rem;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      background:var(--orange); border:none;
+      border-radius:4px;
+      padding:2px 4px;
+      font-weight:700;
+      font-size:0.7rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      background:var(--orange);
+      border:none;
+      color:#fff;
+      line-height:1.2;
+      height:auto;
+      max-height:16px;
     }
 
-    /* 日セル内の長方形群（視覚的な件数表示） */
-    .day-count-wrap {
-      display:flex; flex-wrap:wrap; gap:var(--rect-gap); margin-top:6px;
-      align-items:center;
-    }
-    .day-rect {
-      height:var(--rect-size); min-width:18px; border-radius:3px;
-      background:var(--orange); display:inline-block;
-    }
-    .day-rect.more {
-      background:linear-gradient(90deg,var(--orange-deep),var(--orange));
-      color:#fff; font-size:10px; line-height:14px; padding:0 6px; height:18px; border-radius:6px;
-      display:inline-flex; align-items:center; justify-content:center;
-    }
-
-    /* 日セルの余白調整（モバイルで見やすく） */
-    .fc .fc-daygrid-day-frame { padding:6px; min-height:72px; }
-
-    /* リスト側のスタイル（簡潔） */
-    .selected-date-title { color:var(--muted); margin:0 0 8px 0; font-weight:700; }
-    .task-card { background:#fff; border:1px solid var(--line); padding:10px; border-left:6px solid var(--orange); border-radius:8px; margin-bottom:10px; }
-    .task-title { font-weight:800; margin:6px 0 0 0; }
-    .task-meta { color:var(--muted); font-size:0.9rem; margin-top:6px; }
+    .fc .fc-daygrid-day.fc-day-other { background:#fafafa; opacity:0.5; }
+    .fc .fc-daygrid-day.fc-day-today { background:#fff9f6; }
 
     /* 読み込み表示 */
-    .loading { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:none; z-index:9999; }
+    .loading { 
+      position:fixed; 
+      left:50%; top:50%; 
+      transform:translate(-50%,-50%); 
+      background:#fff; 
+      border:1px solid var(--line); 
+      padding:10px 14px; 
+      border-radius:8px; 
+      box-shadow:0 6px 18px rgba(0,0,0,0.06); 
+      display:none; 
+      z-index:9999; 
+    }
+
+    @media (max-width:768px) {
+      .fc .fc-daygrid-day-frame { min-height:80px; }
+      .fc .fc-daygrid-event { font-size:0.65rem; }
+    }
 
     @media (max-width:420px) {
-      :root { --calendar-height: 60vh; } /* モバイルではさらに広げる */
-      .fc .fc-daygrid-day-frame { min-height:84px; }
-      .day-rect { min-width:16px; }
+      .fc .fc-daygrid-day-frame { min-height:70px; }
+      .fc .fc-daygrid-event { font-size:0.6rem; }
+      header { padding:10px 12px; }
+      header h1 { font-size:0.95rem; }
     }
   </style>
 </head>
@@ -117,19 +149,12 @@
     <div class="calendar-wrap">
       <div id="calendar"></div>
     </div>
-
-    <div class="list-wrap">
-      <h2 id="selected-date-title" class="selected-date-title">選択された日の課題</h2>
-      <div id="timeline-list">
-        <p style="text-align:center; color:var(--muted); padding:24px 0;">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
-      </div>
-    </div>
   </main>
 
   <div class="loading" id="loading">読み込み中…</div>
 
   <script>
-    // Firebase 設定（既存の値をそのまま使用）
+    // Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
       authDomain: "zyohokagakucale.firebaseapp.com",
@@ -144,7 +169,6 @@
 
     // 内部状態
     let allAssignments = [];
-    let dateCounts = {}; // YYYY-MM-DD -> count
     let pendingSnapshotTimer = null;
     let latestSnapshot = null;
     let calendar = null;
@@ -182,12 +206,11 @@
       }, 220);
     }
 
-    // スナップショットを適用：イベント配列と日付カウントを作る
+    // スナップショットを適用：イベント配列を作る
     function applySnapshot(snapshot) {
       showLoading(true);
       const events = [];
       const assignments = [];
-      const counts = {};
 
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -196,73 +219,29 @@
         data._id = doc.id;
         assignments.push(data);
 
-        // FullCalendar 用イベント（全期間表示）
+        // FullCalendar 用イベント
+        const subject = data.subject || data.type || '予定';
+        const title = data.title || '無題';
+        const displayTitle = `${subject}: ${title}`;
+
         events.push({
           id: data._id,
-          title: data.subject || data.title || '予定',
+          title: displayTitle,
           start: dateStr,
           allDay: true,
           extendedProps: { raw: data }
         });
-
-        counts[dateStr] = (counts[dateStr] || 0) + 1;
       });
 
       allAssignments = assignments;
-      dateCounts = counts;
 
-      // カレンダーのイベントを差分更新（簡易）
+      // カレンダーのイベントを差分更新
       calendar.removeAllEvents();
       calendar.addEventSource(events);
-
-      // 再描画して日セルの長方形を更新
       calendar.render();
-
-      // 選択中の日付を再表示（今日をデフォルト）
-      const todayStr = new Date().toISOString().split('T')[0];
-      updateTimeline(todayStr);
 
       // UX: 少し遅延してローディングを消す
       setTimeout(() => showLoading(false), 120);
-    }
-
-    // 日セルに長方形を描画する（FullCalendar の dayCellDidMount を利用）
-    function dayCellDidMount(arg) {
-      // arg.dateStr は YYYY-MM-DD
-      const dateStr = arg.date.toISOString().split('T')[0];
-      const count = dateCounts[dateStr] || 0;
-
-      // 既に要素がある場合はクリア
-      const existing = arg.el.querySelector('.day-count-wrap');
-      if (existing) existing.remove();
-
-      // 作成
-      const wrap = document.createElement('div');
-      wrap.className = 'day-count-wrap';
-      // 表示する長方形の数は最大 --rect-max
-      const maxRects = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rect-max')) || 8;
-      const displayCount = Math.min(count, maxRects);
-
-      for (let i = 0; i < displayCount; i++) {
-        const r = document.createElement('span');
-        r.className = 'day-rect';
-        // 幅は可変にして視覚的に見やすく
-        r.style.minWidth = `${12 + Math.min(10, displayCount) }px`;
-        wrap.appendChild(r);
-      }
-
-      if (count > maxRects) {
-        // 多い場合は最後に「…」風の長方形（数字ではなく視覚的）
-        const more = document.createElement('span');
-        more.className = 'day-rect more';
-        more.textContent = '…';
-        wrap.appendChild(more);
-      }
-
-      // 追加（日付番号の下あたり）
-      // FullCalendar の day cell 内に入れる位置を調整
-      const frame = arg.el.querySelector('.fc-daygrid-day-frame') || arg.el;
-      frame.appendChild(wrap);
     }
 
     // カレンダー初期化
@@ -271,15 +250,13 @@
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'ja',
-        height: '100%',
+        height: 'auto',
+        contentHeight: 'auto',
         handleWindowResize: true,
         headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-        dayMaxEventRows: 3,
+        dayMaxEventRows: 5,
         dayMaxEvents: true,
         eventDisplay: 'block',
-        // 日セルが描画されるたびに呼ばれる（データに応じて長方形を描画）
-        dayCellDidMount: dayCellDidMount,
-        // イベントクリックでリスト側に詳細を表示
         eventClick: function(info) {
           const raw = info.event.extendedProps.raw || {};
           showDetail(raw);
@@ -288,50 +265,11 @@
       calendar.render();
     }
 
-    // 日付を選択したときのリスト表示
-    function updateTimeline(dateStr) {
-      const titleEl = document.getElementById('selected-date-title');
-      const listEl = document.getElementById('timeline-list');
-      const parts = dateStr.split('-');
-      titleEl.innerText = `${parseInt(parts[1],10)}月${parseInt(parts[2],10)}日の課題`;
-
-      const filtered = allAssignments.filter(item => getEventDate(item) === dateStr);
-      if (!filtered || filtered.length === 0) {
-        listEl.innerHTML = `<p style="text-align:center;color:var(--muted);padding:32px 0">この日の締め切りはありません。</p>`;
-        return;
-      }
-
-      // 今日のものは強調（大きめカード）
-      const todayStr = new Date().toISOString().split('T')[0];
-      const isToday = dateStr === todayStr;
-
-      listEl.innerHTML = '';
-      filtered.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'task-card';
-        if (isToday) card.style.borderLeftColor = 'var(--orange-deep)';
-
-        const timeLabel = getTimeLabel(item);
-        const subject = item.subject || item.type || '未設定';
-
-        card.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div style="font-weight:800;color:var(--orange-deep);background:#fff6f0;padding:6px 8px;border-radius:6px">${escapeHtml(subject)}</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted)">${escapeHtml(timeLabel)}</div>
-          </div>
-          <div class="task-title">${escapeHtml(item.title || '無題')}</div>
-          ${item.content ? `<div class="task-meta">${escapeHtml(item.content)}</div>` : ''}
-        `;
-        listEl.appendChild(card);
-      });
-
-      // スクロールトップ
-      listEl.scrollTop = 0;
-    }
-
     function showDetail(raw) {
-      // 簡易モーダル代替の通知（LIFF内で詳細操作はLINE側の課題一覧から行う想定）
-      const msg = `${raw.subject || '未設定'} — ${raw.title || '無題'}\n${raw.deadline || raw.date || ''}`;
+      const timeLabel = getTimeLabel(raw);
+      const subject = raw.subject || raw.type || '未設定';
+      const title = raw.title || '無題';
+      const msg = `【${subject}】\n${title}\n${timeLabel}`;
       showTemporaryNotice(msg);
     }
 
@@ -343,11 +281,22 @@
     // 簡易通知
     function showTemporaryNotice(msg) {
       const el = document.createElement('div');
-      el.style.position = 'fixed'; el.style.left = '50%'; el.style.bottom = '12%'; el.style.transform = 'translateX(-50%)';
-      el.style.background = '#fff'; el.style.border = '1px solid var(--line)'; el.style.padding = '10px 14px'; el.style.borderRadius = '8px';
-      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; el.style.zIndex = 9999; el.innerText = msg;
+      el.style.position = 'fixed'; 
+      el.style.left = '50%'; 
+      el.style.bottom = '20px'; 
+      el.style.transform = 'translateX(-50%)';
+      el.style.background = '#fff'; 
+      el.style.border = '1px solid var(--line)'; 
+      el.style.padding = '12px 14px'; 
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; 
+      el.style.zIndex = '9999'; 
+      el.style.maxWidth = '90vw';
+      el.style.whiteSpace = 'pre-wrap';
+      el.style.wordBreak = 'break-word';
+      el.innerText = msg;
       document.body.appendChild(el);
-      setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 1800);
+      setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 2200);
     }
 
     // 初期化と Firestore 購読
@@ -355,34 +304,34 @@
       initCalendar();
       showLoading(true);
 
-      // LIFF 初期化（LIFF ID は既存のものを使用）
+      // LIFF 初期化
       liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const userId = liff.getContext().userId;
 
-        // ユーザー情報取得（グループID表示）
+        // ユーザー情報取得
         firestore.collection('users').doc(userId).get().then(userDoc => {
           if (!userDoc.exists) {
-            document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">LINE側でグループ登録を行ってください。</p>`;
             showLoading(false);
+            document.getElementById('group-tag').innerText = 'エラー: グループ登録が必要です';
             return;
           }
           const groupId = userDoc.data().groupId || '';
           document.getElementById('group-tag').innerText = `GROUP · ${groupId}`;
 
-          // assignments コレクションを購読（全期間表示）
+          // assignments コレクションを購読
           firestore.collection('groups').doc(groupId).collection('assignments')
             .onSnapshot(snapshot => scheduleSnapshotUpdate(snapshot), err => {
-              document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">データ購読に失敗しました: ${err.message}</p>`;
               showLoading(false);
+              document.getElementById('group-tag').innerText = `エラー: ${err.message}`;
             });
         }).catch(err => {
-          document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">ユーザー情報の取得に失敗しました: ${err.message}</p>`;
           showLoading(false);
+          document.getElementById('group-tag').innerText = `エラー: ${err.message}`;
         });
       }).catch(err => {
-        document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">LIFF 起動に失敗しました: ${err.message}</p>`;
         showLoading(false);
+        document.getElementById('group-tag').innerText = `LIFF エラー: ${err.message}`;
       });
     })();
   </script>

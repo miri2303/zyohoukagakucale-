@@ -20,126 +20,122 @@
   <style>
     :root{
       --bg: #FFFFFF;
-      --bg-subtle: #FAF9F8;
-      --ink: #1C1B1A;
-      --muted: #6B6B6B;
+      --bg-subtle: #F9FAFB;
+      --ink: #111827;
+      --muted: #4B5563;
       --orange: #E8590C;
       --orange-deep: #C2410C;
-      --line: #E6E2DD;
+      --line: #E5E7EB;
     }
 
     * { box-sizing: border-box; }
     html,body { height:100%; margin:0; background:var(--bg); -webkit-text-size-adjust:100%; }
-    body { font-family: 'Zen Kaku Gothic New', system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif; color:var(--ink); font-size:clamp(14px, 3.2vw, 16px); }
+    body { font-family: 'Zen Kaku Gothic New', system-ui, -apple-system, sans-serif; color:var(--ink); font-size:clamp(14px, 3.2vw, 16px); -webkit-font-smoothing: antialiased; }
 
     header {
       display:flex; align-items:center; justify-content:space-between;
-      padding:12px 16px; border-bottom:1px solid var(--line);
+      padding:16px 20px; border-bottom:1px solid var(--line);
       background:var(--bg);
     }
-    header h1 { margin:0; font-weight:900; font-size:1rem; }
-    header p { margin:0; color:var(--muted); font-size:0.9rem; }
+    header h1 { margin:0; font-weight:900; font-size:1.1rem; letter-spacing: -0.02em; }
+    header p { margin:0; color:var(--muted); font-size:0.85rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 
     main { 
       display:flex; 
       flex-direction:column; 
-      height:calc(100vh - 56px); 
+      height:calc(100vh - 65px); 
       overflow:hidden; 
     }
 
-    /* 上半分: カレンダー（3分の2）*/
+    /* カレンダーエリア */
     .calendar-wrap { 
-      flex:0 0 66.66%;
+      flex:0 0 65%;
       min-height:0;
-      padding:8px 12px; 
+      padding:12px 16px; 
       background:var(--bg); 
       overflow:auto;
       border-bottom:1px solid var(--line);
     }
 
-    /* 下半分: リスト（3分の1）*/
+    /* 下半分リストエリア */
     .list-wrap { 
-      flex:0 0 33.33%;
+      flex:0 0 35%;
       min-height:0;
-      padding:12px 16px; 
+      padding:16px 20px; 
       background:var(--bg-subtle); 
       overflow:auto;
       display:flex;
       flex-direction:column;
     }
 
-    /* FullCalendar 調整 */
+    /* FullCalendar UI 洗練化調整 */
     .fc { 
-      font-size:0.95rem; 
+      font-size:0.9rem; 
     }
-    .fc .fc-col-header-cell { padding:8px 2px; }
-    .fc .fc-daygrid-day-number { font-weight:800; color:var(--ink); padding:4px 2px; }
-    .fc .fc-toolbar-title { font-weight:900; font-size:1.05rem; }
+    .fc .fc-col-header-cell { padding:6px 0; font-weight: 700; color: var(--muted); border-color: transparent; }
+    .fc .fc-daygrid-day-number { font-weight:700; color:var(--ink); padding:4px 6px; }
+    .fc .fc-toolbar-title { font-weight:900; font-size:1.1rem; color: var(--ink); }
     .fc .fc-button {
-      padding:6px 8px; font-size:0.85rem; border-radius:6px;
+      padding:5px 10px; font-size:0.8rem; border-radius:6px; font-weight: 700;
       background:#fff; color:var(--ink); border:1px solid var(--line);
-      box-shadow:none;
+      box-shadow: none; transition: all 100ms ease;
     }
-    .fc .fc-button:hover { background:#fff6f0; border-color:var(--orange); }
+    .fc .fc-button:hover { background:var(--bg-subtle); border-color:var(--muted); }
     .fc .fc-button-primary:not(:disabled).fc-button-active,
     .fc .fc-button-primary:not(:disabled):active {
-      background:var(--orange); color:#fff; border-color:var(--orange);
+      background:var(--ink); color:#fff; border-color:var(--ink);
     }
 
-    /* 日セル */
     .fc .fc-daygrid-day-frame { 
-      min-height:70px; 
-      padding:4px; 
+      min-height:65px; 
+      padding:2px; 
     }
 
-    /* イベントを横棒で表示 */
     .fc .fc-daygrid-day-events { 
       display:flex;
       flex-direction:column;
-      gap:3px;
+      gap:2px;
     }
 
     .fc .fc-daygrid-event {
-      border-radius:4px;
-      padding:3px 5px;
+      border-radius:3px;
+      padding:2px 4px;
       font-weight:700;
-      font-size:0.7rem;
+      font-size:0.65rem;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
       background:var(--orange);
       border:none;
       color:#fff;
-      line-height:1.3;
+      line-height:1.2;
       height:auto;
-      max-height:18px;
+      max-height:16px;
       cursor:pointer;
-      transition:all 150ms;
     }
 
     .fc .fc-daygrid-event:hover {
       background:var(--orange-deep);
-      box-shadow:0 2px 8px rgba(232, 89, 12, 0.3);
     }
 
-    .fc .fc-daygrid-day.fc-day-other { background:#fafafa; opacity:0.5; }
-    .fc .fc-daygrid-day.fc-day-today { background:#fff9f6; }
-    .fc .fc-daygrid-day { cursor:pointer; }
+    .fc .fc-daygrid-day.fc-day-other { background: #FAFAFA; opacity:0.4; }
+    .fc .fc-daygrid-day.fc-day-today { background:rgba(232, 89, 12, 0.05); }
 
-    /* リスト側 */
+    /* 下部リスト要素 */
     .selected-date-title { 
       color:var(--ink); 
-      margin:0 0 8px 0; 
+      margin:0 0 12px 0; 
       font-weight:900; 
-      font-size:0.95rem;
-      border-bottom:2px solid var(--orange);
-      padding-bottom:6px;
+      font-size:1rem;
+      border-bottom:2px solid var(--ink);
+      padding-bottom:8px;
+      letter-spacing: -0.01em;
     }
 
     .timeline-list { 
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap:8px;
       overflow-y:auto;
       flex:1;
     }
@@ -147,75 +143,68 @@
     .task-card { 
       background:#fff; 
       border:1px solid var(--line); 
-      padding:8px 10px; 
+      padding:12px; 
       border-left:4px solid var(--orange); 
       border-radius:6px;
-      transition:all 150ms;
-      font-size:0.9rem;
-    }
-
-    .task-card:hover {
-      border-color:var(--orange);
-      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+      font-size:0.85rem;
     }
 
     .task-title { 
-      font-weight:800; 
-      margin:0; 
+      font-weight:700; 
+      margin:0 0 4px 0; 
       font-size:0.95rem;
+      color: var(--ink);
     }
 
     .task-meta { 
       color:var(--muted); 
       font-size:0.8rem; 
       margin-top:4px; 
+      line-height:1.4;
     }
 
     .task-subject {
-      font-weight:800;
+      font-weight:700;
       color:var(--orange-deep);
-      background:#fff6f0;
+      background:rgba(232, 89, 12, 0.08);
       padding:2px 6px;
-      border-radius:3px;
-      font-size:0.8rem;
+      border-radius:4px;
+      font-size:0.75rem;
       display:inline-block;
-      margin-bottom:4px;
+      margin-bottom:6px;
     }
 
     .empty-state {
       text-align:center;
       color:var(--muted);
-      padding:16px 12px;
-      font-size:0.9rem;
+      padding:20px 0;
+      font-size:0.85rem;
     }
 
-    /* 読み込み表示 */
     .loading { 
       position:fixed; 
       left:50%; top:50%; 
       transform:translate(-50%,-50%); 
       background:#fff; 
       border:1px solid var(--line); 
-      padding:10px 14px; 
-      border-radius:8px; 
-      box-shadow:0 6px 18px rgba(0,0,0,0.06); 
+      padding:12px 20px; 
+      border-radius:6px; 
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05); 
       display:none; 
       z-index:9999; 
     }
 
     @media (max-width:768px) {
-      .fc .fc-daygrid-day-frame { min-height:60px; }
-      .fc .fc-daygrid-event { font-size:0.65rem; }
-      .selected-date-title { font-size:0.9rem; }
+      .fc .fc-daygrid-day-frame { min-height:55px; }
+      header { padding: 12px 16px; }
     }
 
     @media (max-width:420px) {
-      .fc .fc-daygrid-day-frame { min-height:50px; }
-      .fc .fc-daygrid-event { font-size:0.6rem; }
-      header { padding:10px 12px; }
-      header h1 { font-size:0.95rem; }
-      .selected-date-title { font-size:0.85rem; }
-      .task-title { font-size:0.9rem; }
+      .fc .fc-daygrid-day-frame { min-height:48px; }
+      .calendar-wrap { padding: 8px; }
+      .list-wrap { padding: 12px 16px; }
     }
   </style>
 </head>
@@ -223,7 +212,7 @@
   <header>
     <div>
       <h1>課題カレンダー</h1>
-      <p id="group-tag">読み込み中</p>
+      <p id="group-tag">LOADING</p>
     </div>
   </header>
 
@@ -235,12 +224,12 @@
     <div class="list-wrap">
       <h2 id="selected-date-title" class="selected-date-title">日付を選択してください</h2>
       <div id="timeline-list" class="timeline-list">
-        <p class="empty-state">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
+        <p class="empty-state">日付をタップするとその日の課題が表示されます</p>
       </div>
     </div>
   </main>
 
-  <div class="loading" id="loading">読み込み中…</div>
+  <div class="loading" id="loading">読み込み中</div>
 
   <script>
     // Firebase 設定
@@ -256,7 +245,6 @@
     firebase.initializeApp(firebaseConfig);
     const firestore = firebase.firestore();
 
-    // 内部状態
     let allAssignments = [];
     let pendingSnapshotTimer = null;
     let latestSnapshot = null;
@@ -285,7 +273,6 @@
       return '終日';
     }
 
-    // スナップショットのデバウンス
     function scheduleSnapshotUpdate(snapshot) {
       latestSnapshot = snapshot;
       if (pendingSnapshotTimer) clearTimeout(pendingSnapshotTimer);
@@ -296,7 +283,6 @@
       }, 220);
     }
 
-    // スナップショットを適用
     function applySnapshot(snapshot) {
       showLoading(true);
       const events = [];
@@ -309,7 +295,6 @@
         data._id = doc.id;
         assignments.push(data);
 
-        // FullCalendar 用イベント
         const subject = data.subject || data.type || '予定';
         const title = data.title || '無題';
         const displayTitle = `${subject}: ${title}`;
@@ -324,13 +309,10 @@
       });
 
       allAssignments = assignments;
-
-      // カレンダーのイベントを差分更新
       calendar.removeAllEvents();
       calendar.addEventSource(events);
       calendar.render();
 
-      // 選択中の日付があれば再表示
       if (selectedDateStr) {
         updateTimeline(selectedDateStr);
       }
@@ -338,7 +320,6 @@
       setTimeout(() => showLoading(false), 120);
     }
 
-    // 日付を選択したときのリスト表示
     function updateTimeline(dateStr) {
       selectedDateStr = dateStr;
       const titleEl = document.getElementById('selected-date-title');
@@ -350,7 +331,7 @@
 
       const filtered = allAssignments.filter(item => getEventDate(item) === dateStr);
       if (!filtered || filtered.length === 0) {
-        listEl.innerHTML = `<p class="empty-state">この日の締め切りはありません。</p>`;
+        listEl.innerHTML = `<p class="empty-state">この日の締め切りはありません</p>`;
         return;
       }
 
@@ -368,7 +349,7 @@
           <div class="task-subject">${escapeHtml(subject)}</div>
           <div class="task-title">${escapeHtml(title)}</div>
           ${content ? `<div class="task-meta">${escapeHtml(content)}</div>` : ''}
-          <div class="task-meta" style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-weight:700;">${escapeHtml(timeLabel)}</div>
+          <div class="task-meta" style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--ink);">${escapeHtml(timeLabel)}</div>
         `;
         listEl.appendChild(card);
       });
@@ -381,7 +362,6 @@
       return String(str).replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
     }
 
-    // カレンダー初期化
     function initCalendar() {
       const calendarEl = document.getElementById('calendar');
       calendar = new FullCalendar.Calendar(calendarEl, {
@@ -391,56 +371,48 @@
         contentHeight: 'auto',
         handleWindowResize: true,
         headerToolbar: { left: 'prev,next', center: 'title', right: '' },
-        dayMaxEventRows: 5,
+        dayMaxEventRows: 4,
         dayMaxEvents: true,
         eventDisplay: 'block',
-        // 日付クリック時
         dateClick: function(info) {
-          const dateStr = info.dateStr;
-          updateTimeline(dateStr);
+          updateTimeline(info.dateStr);
         },
-        // イベントクリック時（日付選択とリスト表示）
         eventClick: function(info) {
-          const dateStr = info.event.startStr;
-          updateTimeline(dateStr);
+          updateTimeline(info.event.startStr);
         }
       });
       calendar.render();
     }
 
-    // 初期化と Firestore 購読
     (function bootstrap(){
       initCalendar();
       showLoading(true);
 
-      // LIFF 初期化
       liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const userId = liff.getContext().userId;
 
-        // ユーザー情報取得
         firestore.collection('users').doc(userId).get().then(userDoc => {
           if (!userDoc.exists) {
             showLoading(false);
-            document.getElementById('group-tag').innerText = 'エラー: グループ登録が必要です';
+            document.getElementById('group-tag').innerText = 'ERROR: NOT REGISTERED';
             return;
           }
           const groupId = userDoc.data().groupId || '';
           document.getElementById('group-tag').innerText = `GROUP · ${groupId}`;
 
-          // assignments コレクションを購読
           firestore.collection('groups').doc(groupId).collection('assignments')
             .onSnapshot(snapshot => scheduleSnapshotUpdate(snapshot), err => {
               showLoading(false);
-              document.getElementById('group-tag').innerText = `エラー: ${err.message}`;
+              document.getElementById('group-tag').innerText = `ERROR: ${err.message}`;
             });
         }).catch(err => {
           showLoading(false);
-          document.getElementById('group-tag').innerText = `エラー: ${err.message}`;
+          document.getElementById('group-tag').innerText = `ERROR: ${err.message}`;
         });
       }).catch(err => {
         showLoading(false);
-        document.getElementById('group-tag').innerText = `LIFF エラー: ${err.message}`;
+        document.getElementById('group-tag').innerText = `LIFF ERROR: ${err.message}`;
       });
     })();
   </script>

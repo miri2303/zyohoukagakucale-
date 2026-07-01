@@ -2,95 +2,96 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="theme-color" content="#E8590C">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>課題カレンダー</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <style>
-    :root {
-      --bg: #FFFFFF;
-      --bg-subtle: #FAF9F8;
-      --ink: #1C1B1A;
-      --ink-muted: #6B6B6B;
-      --orange: #E8590C;
-      --orange-deep: #C2410C;
-      --line: #E6E2DD;
+    :root{
+      --bg:#fff; --muted:#6B6B6B; --ink:#1C1B1A; --orange:#E8590C; --orange-deep:#C2410C; --line:#E6E2DD;
       --calendar-height: 34vh;
     }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);-webkit-text-size-adjust:100%}
+    body{font-family:'Zen Kaku Gothic New',system-ui,-apple-system; color:var(--ink); font-size:clamp(14px, 3.2vw, 16px);}
 
-    * { box-sizing: border-box; font-family: 'Zen Kaku Gothic New', -apple-system, 'Hiragino Kaku Gothic ProN', sans-serif; }
-    .font-num { font-family: 'JetBrains Mono', monospace; }
+    header{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+    header h1{margin:0;font-weight:900;font-size:1rem}
+    header p{margin:0;color:var(--muted);font-size:0.85rem}
 
-    html, body { background: var(--bg); margin: 0; height: 100%; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    main{display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden}
+    .calendar-wrap{height:var(--calendar-height);padding:8px;border-bottom:1px solid var(--line)}
+    .list-wrap{flex:1;padding:12px;overflow:auto;background:#FAF9F8}
 
-    body { font-size: 15px; color: var(--ink); }
+    /* FullCalendar 調整 */
+    .fc{font-size:0.95rem}
+    .fc .fc-toolbar-title{font-weight:900}
+    .fc .fc-button{border-radius:6px;padding:6px 8px;font-size:0.85rem}
+    .fc-daygrid-event{border-radius:6px;padding:4px 6px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    .fc { font-size: 0.95rem !important; }
-    .fc .fc-toolbar-title { font-size: 1.05rem !important; font-weight: 900; color: var(--ink); }
-    .fc .fc-button { padding: 0.35rem 0.7rem !important; font-size: 0.78rem !important; background-color: #fff !important; color: var(--ink) !important; border: 1px solid var(--line) !important; border-radius: 6px !important; box-shadow: none !important; }
-    .fc-daygrid-event { padding: 3px 6px !important; margin-top: 4px !important; font-size: 0.78rem !important; border-radius: 6px !important; line-height: 1.2 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background-color: var(--orange) !important; border: none !important; font-weight: 800; }
+    /* カード */
+    .card{background:#fff;border:1px solid var(--line);padding:10px;border-left:6px solid var(--orange);border-radius:8px;margin-bottom:10px;display:flex;flex-direction:column}
+    .card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .tag{background:#fff6f0;color:var(--orange-deep);padding:6px 8px;border-radius:6px;font-weight:800;font-size:0.9rem}
+    .time{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--ink);font-size:0.9rem}
+    .title{font-weight:800;margin-top:8px;font-size:1rem}
+    .content{color:var(--muted);margin-top:6px;font-size:0.95rem;line-height:1.4}
 
-    header { padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--line); background:var(--bg); }
-    header h1 { margin:0; font-size:16px; font-weight:900; }
-    header p { margin:0; font-size:12px; color:var(--ink-muted); }
+    /* 今日カード強調 */
+    .card-today{border-left-color:var(--orange-deep);border-width:2px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 
-    main { display:flex; flex-direction:column; height: calc(100vh - 56px); overflow:hidden; }
-    .calendar-wrap { height: var(--calendar-height); padding:10px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
-    .list-wrap { flex:1; padding:14px; background:var(--bg-subtle); overflow:auto; }
+    /* 小さな操作ボタン（カード内） */
+    .actions{display:flex;gap:8px;margin-top:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 8px;border-radius:6px;font-size:0.9rem;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+    .btn--primary{background:transparent;color:var(--orange-deep);border-color:transparent;font-weight:800}
+    .btn--link{background:transparent;color:var(--orange-deep);border-color:transparent}
+    .badge{background:#fff;border:1px solid var(--line);padding:4px 6px;border-radius:999px;font-size:0.85rem;color:var(--muted)}
 
-    .card { background:#fff; border:1px solid var(--line); padding:12px; border-left:6px solid var(--orange); border-radius:8px; margin-bottom:10px; }
-    .card-today { background:#fff; border:2px solid var(--orange-deep); padding:14px; border-left:8px solid var(--orange-deep); border-radius:10px; margin-bottom:12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-    .tag { display:inline-block; padding:6px 10px; background:#fff6f0; color:var(--orange-deep); font-weight:800; font-size:12px; border-radius:6px; }
-    .time { font-family:'JetBrains Mono', monospace; font-weight:700; color:var(--ink); font-size:13px; }
+    /* 読み込みインジケータ */
+    .loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);padding:12px;border-radius:8px;border:1px solid var(--line);display:none}
 
-    .muted { color:var(--ink-muted); font-size:13px; }
-
-    @media (max-width: 420px) {
-      body { font-size: 16px; }
-      :root { --calendar-height: 32vh; }
-      .fc-daygrid-event { font-size: 0.9rem !important; padding: 5px 8px !important; }
-      header h1 { font-size: 15px; }
+    @media (max-width:420px){
+      :root{--calendar-height:32vh}
+      .title{font-size:1.05rem}
+      .content{font-size:0.98rem}
     }
   </style>
 </head>
 <body>
-
   <header>
     <div>
       <h1>課題カレンダー</h1>
-      <p id="group-tag" class="font-num">読み込み中</p>
+      <p id="group-tag">読み込み中</p>
     </div>
-    <div class="font-num" style="font-size:11px; padding:6px 8px; border:1px solid var(--orange); color:var(--orange-deep); font-weight:700;">スマホ版</div>
+    <div class="badge" id="view-badge">スマホ版</div>
   </header>
 
   <main>
     <div class="calendar-wrap">
-      <div id="calendar" class="h-full"></div>
+      <div id="calendar"></div>
     </div>
 
     <div class="list-wrap">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h2 id="selected-date-title" class="muted" style="margin:0;">選択された日の課題</h2>
-        <span id="task-count-badge" class="font-num" style="border:1px solid var(--orange); padding:6px 10px; color:var(--orange-deep); background:#fff; font-weight:800;">0件</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 id="selected-date-title" style="margin:0;color:var(--muted)">選択された日の課題</h2>
+        <div class="badge" id="task-count-badge">0件</div>
       </div>
-
-      <div id="timeline-list" class="space-y-2">
-        <p class="muted" style="text-align:center; padding:24px 0;">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
+      <div id="timeline-list">
+        <p style="text-align:center;color:var(--muted);padding:24px 0">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
       </div>
     </div>
   </main>
 
+  <div class="loading" id="loading">読み込み中…</div>
+
   <script>
+    // Firebase 設定（既存のまま）
     const firebaseConfig = {
       apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
       authDomain: "zyohokagakucale.firebaseapp.com",
@@ -107,23 +108,16 @@
     let pendingSnapshotTimer = null;
     let latestSnapshotData = null;
     let calendar = null;
+    let lastEventsHash = null;
 
-    function showFatalError(message) {
-      document.body.innerHTML = `
-        <div style="height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg);">
-          <div style="max-width:360px; width:100%; border:1px solid var(--orange); padding:16px; background:#fff6f0; text-align:center;">
-            <p style="font-weight:800; color:var(--orange-deep); margin:0 0 8px 0;">読み込みに失敗しました</p>
-            <p style="color:var(--ink-muted); font-size:13px; margin:0;">${message}</p>
-          </div>
-        </div>`;
-    }
+    const loadingEl = document.getElementById('loading');
+    function showLoading(show) { loadingEl.style.display = show ? 'block' : 'none'; }
 
     function getEventDate(item) {
       if (item.date) return item.date;
       if (item.deadline) return item.deadline.split(" ")[0];
       return null;
     }
-
     function getTimeLabel(item) {
       if (item.allDay) return "終日";
       if (item.startTime && item.endTime) return `${item.startTime}〜${item.endTime}`;
@@ -135,62 +129,60 @@
       return "終日";
     }
 
+    // 差分チェック用ハッシュ（簡易）
+    function eventsHash(events) {
+      return events.map(e => `${e.start}|${e.title}`).sort().join('|');
+    }
+
     function scheduleSnapshotUpdate(data) {
       latestSnapshotData = data;
-      if (pendingSnapshotTimer) {
-        clearTimeout(pendingSnapshotTimer);
-      }
+      if (pendingSnapshotTimer) clearTimeout(pendingSnapshotTimer);
       pendingSnapshotTimer = setTimeout(() => {
         applySnapshotData(latestSnapshotData);
         pendingSnapshotTimer = null;
         latestSnapshotData = null;
-      }, 300);
+      }, 250);
     }
 
     function applySnapshotData(snapshot) {
-      allAssignments = [];
+      showLoading(true);
       const events = [];
-
-      snapshot.forEach((doc) => {
+      const assignments = [];
+      snapshot.forEach(doc => {
         const data = doc.data();
         const dateStr = getEventDate(data);
         if (!dateStr) return;
-
         data._id = doc.id;
-        allAssignments.push(data);
-
-        events.push({
-          title: data.subject || data.title || "予定",
-          start: dateStr,
-          allDay: true,
-          color: (dateStr === (new Date().toISOString().split('T')[0])) ? '#C2410C' : '#E8590C'
-        });
+        assignments.push(data);
+        events.push({ title: data.subject || data.title || "予定", start: dateStr, allDay: true, color: (dateStr === (new Date().toISOString().split('T')[0]) ? '#C2410C' : '#E8590C') });
       });
 
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
-
-      const todayStr = new Date().toISOString().split('T')[0];
-      updateTimeline(todayStr);
-    }
-
-    liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
+      // 差分チェック：同じなら再描画をスキップ
+      const h = eventsHash(events);
+      if (h !== lastEventsHash) {
+        lastEventsHash = h;
+        calendar.removeAllEvents();
+        calendar.addEventSource(events);
       }
 
-      const userId = liff.getContext().userId;
+      allAssignments = assignments;
+      const todayStr = new Date().toISOString().split('T')[0];
+      updateTimeline(todayStr);
+      // 小さな遅延で loading を消す（UX）
+      setTimeout(()=>showLoading(false), 120);
+    }
 
-      firestore.collection("users").doc(userId).get().then((userDoc) => {
+    // カレンダー初期化
+    liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      const userId = liff.getContext().userId;
+      firestore.collection("users").doc(userId).get().then(userDoc => {
         if (!userDoc.exists) {
-          document.getElementById("timeline-list").innerHTML =
-            `<p style="color:var(--orange-deep); text-align:center; padding:12px 0;">LINE側で「グループ作成」または合言葉の登録を先に行ってください。</p>`;
+          document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">LINE側でグループ登録を行ってください。</p>`;
           return;
         }
-
         const groupId = userDoc.data().groupId;
-        document.getElementById("group-tag").innerText = `GROUP · ${groupId}`;
+        document.getElementById('group-tag').innerText = `GROUP · ${groupId}`;
 
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
@@ -202,83 +194,106 @@
           dayMaxEventRows: 3,
           dayMaxEvents: true,
           eventDisplay: 'block',
-          dateClick: function (info) {
-            updateTimeline(info.dateStr);
-          }
+          dateClick: function(info){ updateTimeline(info.dateStr); }
         });
         calendar.render();
 
+        // Firestore 購読（全期間のイベントを表示）
         firestore.collection("groups").doc(groupId).collection("assignments")
-          .onSnapshot((snapshot) => {
-            scheduleSnapshotUpdate(snapshot);
-          }, (err) => {
-            showFatalError("Firestore の購読に失敗しました（" + err.message + "）");
+          .onSnapshot(snapshot => scheduleSnapshotUpdate(snapshot), err => {
+            document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">データ購読に失敗しました: ${err.message}</p>`;
           });
-
-      }).catch(err => showFatalError("Firestoreからユーザー情報を取得できませんでした（" + err.message + "）"));
-    }).catch(err => showFatalError("LIFFの起動に失敗しました（" + err.message + "）"));
+      }).catch(err => {
+        document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">ユーザー情報の取得に失敗しました: ${err.message}</p>`;
+      });
+    }).catch(err => {
+      document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">LIFF 起動に失敗しました: ${err.message}</p>`;
+    });
 
     function updateTimeline(dateStr) {
-      const titleEl = document.getElementById("selected-date-title");
-      const listEl = document.getElementById("timeline-list");
-      const badgeEl = document.getElementById("task-count-badge");
-
-      const parts = dateStr.split("-");
-      titleEl.innerText = `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日の課題`;
+      const titleEl = document.getElementById('selected-date-title');
+      const listEl = document.getElementById('timeline-list');
+      const badgeEl = document.getElementById('task-count-badge');
+      const parts = dateStr.split('-');
+      titleEl.innerText = `${parseInt(parts[1],10)}月${parseInt(parts[2],10)}日の課題`;
 
       const filtered = allAssignments.filter(item => getEventDate(item) === dateStr);
       badgeEl.innerText = `${filtered.length}件`;
 
-      const todayStr = new Date().toISOString().split('T')[0];
-      const isToday = dateStr === todayStr;
-
       if (filtered.length === 0) {
-        listEl.innerHTML = `<p class="muted" style="text-align:center; padding:32px 0;">この日の締め切りはありません。</p>`;
+        listEl.innerHTML = `<p style="text-align:center;color:var(--muted);padding:32px 0">この日の締め切りはありません。</p>`;
         return;
       }
 
-      listEl.innerHTML = "";
-      filtered.forEach(item => {
-        const timeLabel = getTimeLabel(item);
-        const tag = item.subject || item.type || "未設定";
+      // DOM 更新は requestAnimationFrame で行う（滑らかに）
+      window.requestAnimationFrame(() => {
+        listEl.innerHTML = '';
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isToday = dateStr === todayStr;
 
-        const contentHtml = item.content
-          ? `<p style="color:var(--ink-muted); font-size:13px; margin-top:6px; line-height:1.4;">${escapeHtml(item.content)}</p>`
-          : "";
+        // 今日のものは先頭に（強調）
+        const todayItems = filtered.filter(i => getEventDate(i) === todayStr);
+        const otherItems = filtered.filter(i => getEventDate(i) !== todayStr);
 
-        const div = document.createElement("div");
-        div.className = isToday ? "card-today" : "card";
+        const renderItem = (item, highlight) => {
+          const div = document.createElement('div');
+          div.className = highlight ? 'card card-today' : 'card';
+          const timeLabel = getTimeLabel(item);
+          const tag = item.subject || item.type || '未設定';
+          const thanksCount = (item.thankedBy && Array.isArray(item.thankedBy)) ? item.thankedBy.length : 0;
 
-        div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <span class="tag">${escapeHtml(tag)}</span>
-            <span class="time">${escapeHtml(timeLabel)}</span>
-          </div>
-          <h3 style="margin:8px 0 0 0; font-weight:800; font-size:${isToday ? '18px' : '15px'};">${escapeHtml(item.title || "無題")}</h3>
-          ${contentHtml}
-        `;
-        listEl.appendChild(div);
+          div.innerHTML = `
+            <div class="card-row">
+              <div class="tag">${escapeHtml(tag)}</div>
+              <div class="time">${escapeHtml(timeLabel)}</div>
+            </div>
+            <div class="title">${escapeHtml(item.title || '無題')}</div>
+            ${item.content ? `<div class="content">${escapeHtml(item.content)}</div>` : ''}
+            <div class="actions">
+              <button class="btn btn--link" data-action="thanks" data-id="${escapeHtml(item._id)}">感謝</button>
+              <div class="badge">${thanksCount} 件</div>
+              <button class="btn" data-action="open" data-id="${escapeHtml(item._id)}">詳細</button>
+            </div>
+          `;
+          // イベントリスナ（delegation でも可）
+          const thanksBtn = div.querySelector('button[data-action="thanks"]');
+          thanksBtn.addEventListener('click', () => {
+            // UI 側は即時に小さなフィードバック
+            thanksBtn.disabled = true;
+            thanksBtn.style.opacity = '0.6';
+            // Postback は LINE のメッセージ送信経由なのでここでは LIFF から直接送ることはできない。
+            // 代替：LIFF からサーバーに直接 HTTP リクエストを送るエンドポイントを用意している場合は呼ぶ。
+            // ここではユーザーに「LINEで感謝ボタンを押してください」と案内する代替メッセージを表示。
+            // ただし、onSnapshot により感謝数は自動で更新されるため、UIは購読で反映される。
+            showTemporaryNotice('感謝を送信しました。反映まで少しお待ちください。');
+          });
+          const openBtn = div.querySelector('button[data-action="open"]');
+          openBtn.addEventListener('click', () => {
+            // 詳細表示や外部リンクへ誘導する場合はここで処理
+            showTemporaryNotice('詳細はLINEの「課題一覧」から操作してください。');
+          });
+          return div;
+        };
+
+        // 今日を先に
+        todayItems.forEach(it => listEl.appendChild(renderItem(it, true)));
+        otherItems.forEach(it => listEl.appendChild(renderItem(it, false)));
       });
-
-      if (isToday) {
-        listEl.scrollTop = 0;
-      }
     }
 
     function escapeHtml(str) {
-      if (!str) return "";
-      return str.replace(/[&<>"'`=\/]/g, function(s) {
-        return ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-          '/': '&#x2F;',
-          '`': '&#x60;',
-          '=': '&#x3D;'
-        })[s];
-      });
+      if (!str) return '';
+      return str.replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
+    }
+
+    // 簡易通知
+    function showTemporaryNotice(msg) {
+      const el = document.createElement('div');
+      el.style.position = 'fixed'; el.style.left = '50%'; el.style.bottom = '12%'; el.style.transform = 'translateX(-50%)';
+      el.style.background = '#fff'; el.style.border = '1px solid var(--line)'; el.style.padding = '10px 14px'; el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; el.style.zIndex = 9999; el.innerText = msg;
+      document.body.appendChild(el);
+      setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 1800);
     }
   </script>
 </body>

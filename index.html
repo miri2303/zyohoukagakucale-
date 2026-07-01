@@ -10,19 +10,18 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-900 font-sans">
 
   <div class="p-4 max-w-4xl mx-auto">
-    <header class="flex justify-between items-center mb-4">
-      <h1 class="text-xl font-bold text-green-600">📅 課題ダッシュボード</h1>
-      <span id="group-tag" class="bg-gray-200 text-xs px-2 py-1 rounded">読込中...</span>
+    <header class="flex justify-between items-center mb-6 border-b pb-4">
+      <h1 class="text-lg font-bold tracking-tight text-gray-800">課題ダッシュボード</h1>
+      <span id="group-tag" class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded">読み込み中</span>
     </header>
     
-    <div id="calendar" class="bg-white p-4 rounded-xl shadow-md"></div>
+    <div id="calendar" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"></div>
   </div>
 
   <script>
-    // 💡 1. Firebaseの初期設定（自分のコンソールの値に変えてね）
     const firebaseConfig = {
       apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
       authDomain: "zyohokagakucale.firebaseapp.com",
@@ -35,7 +34,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 💡 2. LIFFの初期化とデータのリアルタイム読み込み
     liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
       if (!liff.isLoggedIn()) {
         liff.login();
@@ -43,47 +41,59 @@
       }
       
       const context = liff.getContext();
-      const userId = context.userId; // LINEのユーザーIDを取得
+      const userId = context.userId;
 
-      // ユーザーの所属グループをFirestoreから検索
       db.collection("users").doc(userId).get().then((userDoc) => {
         if (!userDoc.exists) {
-          alert("⚠️ グループ情報が見つかりません。\nLINEトーク画面で「グループ作成」を行うか、既存のグループに参加してから再度開いてください。");
+          alert("グループ情報が見つかりません。LINEから初期設定を行ってください。");
           return;
         }
         
-        const groupId = userDoc.data().groupId;
-        document.getElementById("group-tag").innerText = `グループ合言葉: ${groupId}`;
+        const userData = userDoc.data();
+        const groupId = userData.groupId;
+        const userClass = userData.class || "全員";
+        
+        document.getElementById("group-tag").innerText = `クラス: ${userClass} | ID: ${groupId}`;
 
-        // カレンダーの初期化
         const calendarEl = document.getElementById('calendar');
         const calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
           locale: 'ja',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek'
+          },
           events: []
         });
         calendar.render();
 
-        // 💡 修正箇所：.document() を .doc() に修正し、エラーハンドリングを追加
         db.collection("groups").doc(groupId).collection("assignments")
           .onSnapshot((snapshot) => {
             const events = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
-              events.push({
-                title: `[${data.subject}] ${data.title}`,
-                start: data.deadline.split(" ")[0], 
-                color: '#e11d48' 
-              });
+              
+              // ユーザーの所属クラス、または「全員」宛ての課題のみ表示
+              if (data.target === "全員" || data.target === userClass) {
+                const datePart = data.deadline ? data.deadline.split(" ")[0] : null;
+                if (datePart) {
+                  events.push({
+                    title: `[${data.subject}] ${data.title}`,
+                    start: datePart, 
+                    color: '#e11d48' 
+                  });
+                }
+              }
             });
             calendar.removeAllEvents();
             calendar.addEventSource(events);
           }, (error) => {
-            alert("Firestore読み込みエラー: " + error.message);
+            alert("データ同期エラー: " + error.message);
           });
 
       }).catch((err) => {
-        alert("ユーザーデータ取得失敗: " + err.message);
+        alert("ユーザー情報の取得に失敗しました: " + err.message);
       });
     }).catch((err) => {
       alert("LIFFの起動に失敗しました: " + err.message);

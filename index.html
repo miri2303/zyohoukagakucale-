@@ -22,7 +22,7 @@
   </div>
 
   <script>
-    // 💡 1. Firebaseの初期設定（自分のコンソールの値に差し替えてね）
+    // 💡 1. Firebaseの初期設定（自分のコンソールの値に変えてね）
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -47,9 +47,10 @@
       // ユーザーの所属グループをFirestoreから検索
       db.collection("users").doc(userId).get().then((userDoc) => {
         if (!userDoc.exists) {
-          alert("グループに所属していません。LINEトーク画面でグループを作成・参加してください。");
+          alert("⚠️ グループ情報が見つかりません。\nLINEトーク画面で「グループ作成」を行うか、既存のグループに参加してから再度開いてください。");
           return;
         }
+        
         const groupId = userDoc.data().groupId;
         document.getElementById("group-tag").innerText = `グループ合言葉: ${groupId}`;
 
@@ -62,26 +63,29 @@
         });
         calendar.render();
 
-        // 💡 課題データのリアルタイム同期（Firestoreの牙城）
-        db.collection("groups").document(groupId).collection("assignments")
+        // 💡 修正箇所：.document() を .doc() に修正し、エラーハンドリングを追加
+        db.collection("groups").doc(groupId).collection("assignments")
           .onSnapshot((snapshot) => {
             const events = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
-              // FullCalendarの形式にデータを変換してプッシュ
               events.push({
                 title: `[${data.subject}] ${data.title}`,
-                start: data.deadline.split(" ")[0], // YYYY-MM-DDの部分だけ抽出
-                color: '#e11d48' // 危険色（ローズ）
+                start: data.deadline.split(" ")[0], 
+                color: '#e11d48' 
               });
             });
-            // カレンダーのイベントを動的に更新
             calendar.removeAllEvents();
             calendar.addEventSource(events);
+          }, (error) => {
+            alert("Firestore読み込みエラー: " + error.message);
           });
+
+      }).catch((err) => {
+        alert("ユーザーデータ取得失敗: " + err.message);
       });
     }).catch((err) => {
-      console.error("LIFFの起動に失敗", err);
+      alert("LIFFの起動に失敗しました: " + err.message);
     });
   </script>
 </body>

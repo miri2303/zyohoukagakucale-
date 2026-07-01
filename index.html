@@ -1,65 +1,106 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <meta name="theme-color" content="#E8590C">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <meta name="theme-color" content="#E8590C" />
   <title>課題カレンダー</title>
 
+  <!-- フォント -->
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+  <!-- LIFF / Firebase -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <style>
     :root{
-      --bg:#fff; --muted:#6B6B6B; --ink:#1C1B1A; --orange:#E8590C; --orange-deep:#C2410C; --line:#E6E2DD;
-      --calendar-height: 34vh;
+      --bg: #FFFFFF;
+      --bg-subtle: #FAF9F8;
+      --ink: #1C1B1A;
+      --muted: #6B6B6B;
+      --orange: #E8590C;
+      --orange-deep: #C2410C;
+      --line: #E6E2DD;
+      --calendar-height: 55vh; /* 上半分より広めに確保 */
+      --rect-size: 8px;       /* 日セル内の長方形サイズ（高さ） */
+      --rect-gap: 4px;
+      --rect-max: 8;          /* 日セルに表示する長方形の最大数 */
     }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);-webkit-text-size-adjust:100%}
-    body{font-family:'Zen Kaku Gothic New',system-ui,-apple-system; color:var(--ink); font-size:clamp(14px, 3.2vw, 16px);}
 
-    header{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
-    header h1{margin:0;font-weight:900;font-size:1rem}
-    header p{margin:0;color:var(--muted);font-size:0.85rem}
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; background:var(--bg); -webkit-text-size-adjust:100%; }
+    body { font-family: 'Zen Kaku Gothic New', system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif; color:var(--ink); font-size:clamp(14px, 3.2vw, 16px); }
 
-    main{display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden}
-    .calendar-wrap{height:var(--calendar-height);padding:8px;border-bottom:1px solid var(--line)}
-    .list-wrap{flex:1;padding:12px;overflow:auto;background:#FAF9F8}
+    header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; border-bottom:1px solid var(--line);
+      background:var(--bg);
+    }
+    header h1 { margin:0; font-weight:900; font-size:1rem; }
+    header p { margin:0; color:var(--muted); font-size:0.9rem; }
 
-    /* FullCalendar 調整 */
-    .fc{font-size:0.95rem}
-    .fc .fc-toolbar-title{font-weight:900}
-    .fc .fc-button{border-radius:6px;padding:6px 8px;font-size:0.85rem}
-    .fc-daygrid-event{border-radius:6px;padding:4px 6px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    main { display:flex; flex-direction:column; height:calc(100vh - 56px); overflow:hidden; }
 
-    /* カード */
-    .card{background:#fff;border:1px solid var(--line);padding:10px;border-left:6px solid var(--orange);border-radius:8px;margin-bottom:10px;display:flex;flex-direction:column}
-    .card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-    .tag{background:#fff6f0;color:var(--orange-deep);padding:6px 8px;border-radius:6px;font-weight:800;font-size:0.9rem}
-    .time{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--ink);font-size:0.9rem}
-    .title{font-weight:800;margin-top:8px;font-size:1rem}
-    .content{color:var(--muted);margin-top:6px;font-size:0.95rem;line-height:1.4}
+    /* カレンダー領域を広く */
+    .calendar-wrap { height:var(--calendar-height); padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
+    .list-wrap { flex:1; padding:12px; background:var(--bg-subtle); overflow:auto; }
 
-    /* 今日カード強調 */
-    .card-today{border-left-color:var(--orange-deep);border-width:2px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    /* FullCalendar 調整（四角基調） */
+    .fc { font-size:0.95rem; }
+    .fc .fc-toolbar-title { font-weight:900; font-size:1.05rem; }
+    .fc .fc-button {
+      padding:6px 8px; font-size:0.85rem; border-radius:6px;
+      background:#fff; color:var(--ink); border:1px solid var(--line);
+      box-shadow:none;
+    }
+    .fc .fc-button:hover { background:#fff6f0; border-color:var(--orange); }
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+      background:var(--orange); color:#fff; border-color:var(--orange);
+    }
+    .fc .fc-daygrid-day-number { font-weight:800; color:var(--ink); }
+    .fc .fc-daygrid-event {
+      border-radius:6px; padding:4px 6px; font-weight:800; font-size:0.78rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      background:var(--orange); border:none;
+    }
 
-    /* 小さな操作ボタン（カード内） */
-    .actions{display:flex;gap:8px;margin-top:10px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 8px;border-radius:6px;font-size:0.9rem;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
-    .btn--primary{background:transparent;color:var(--orange-deep);border-color:transparent;font-weight:800}
-    .btn--link{background:transparent;color:var(--orange-deep);border-color:transparent}
-    .badge{background:#fff;border:1px solid var(--line);padding:4px 6px;border-radius:999px;font-size:0.85rem;color:var(--muted)}
+    /* 日セル内の長方形群（視覚的な件数表示） */
+    .day-count-wrap {
+      display:flex; flex-wrap:wrap; gap:var(--rect-gap); margin-top:6px;
+      align-items:center;
+    }
+    .day-rect {
+      height:var(--rect-size); min-width:18px; border-radius:3px;
+      background:var(--orange); display:inline-block;
+    }
+    .day-rect.more {
+      background:linear-gradient(90deg,var(--orange-deep),var(--orange));
+      color:#fff; font-size:10px; line-height:14px; padding:0 6px; height:18px; border-radius:6px;
+      display:inline-flex; align-items:center; justify-content:center;
+    }
 
-    /* 読み込みインジケータ */
-    .loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);padding:12px;border-radius:8px;border:1px solid var(--line);display:none}
+    /* 日セルの余白調整（モバイルで見やすく） */
+    .fc .fc-daygrid-day-frame { padding:6px; min-height:72px; }
 
-    @media (max-width:420px){
-      :root{--calendar-height:32vh}
-      .title{font-size:1.05rem}
-      .content{font-size:0.98rem}
+    /* リスト側のスタイル（簡潔） */
+    .selected-date-title { color:var(--muted); margin:0 0 8px 0; font-weight:700; }
+    .task-card { background:#fff; border:1px solid var(--line); padding:10px; border-left:6px solid var(--orange); border-radius:8px; margin-bottom:10px; }
+    .task-title { font-weight:800; margin:6px 0 0 0; }
+    .task-meta { color:var(--muted); font-size:0.9rem; margin-top:6px; }
+
+    /* 読み込み表示 */
+    .loading { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:none; z-index:9999; }
+
+    @media (max-width:420px) {
+      :root { --calendar-height: 60vh; } /* モバイルではさらに広げる */
+      .fc .fc-daygrid-day-frame { min-height:84px; }
+      .day-rect { min-width:16px; }
     }
   </style>
 </head>
@@ -69,7 +110,7 @@
       <h1>課題カレンダー</h1>
       <p id="group-tag">読み込み中</p>
     </div>
-    <div class="badge" id="view-badge">スマホ版</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-weight:700; font-size:0.85rem; color:var(--orange-deep); border:1px solid var(--orange); padding:6px 8px; border-radius:6px;">スマホ版</div>
   </header>
 
   <main>
@@ -78,12 +119,9 @@
     </div>
 
     <div class="list-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <h2 id="selected-date-title" style="margin:0;color:var(--muted)">選択された日の課題</h2>
-        <div class="badge" id="task-count-badge">0件</div>
-      </div>
+      <h2 id="selected-date-title" class="selected-date-title">選択された日の課題</h2>
       <div id="timeline-list">
-        <p style="text-align:center;color:var(--muted);padding:24px 0">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
+        <p style="text-align:center; color:var(--muted); padding:24px 0;">カレンダーの日付をタップすると、その日の課題が表示されます。</p>
       </div>
     </div>
   </main>
@@ -91,7 +129,7 @@
   <div class="loading" id="loading">読み込み中…</div>
 
   <script>
-    // Firebase 設定（既存のまま）
+    // Firebase 設定（既存の値をそのまま使用）
     const firebaseConfig = {
       apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
       authDomain: "zyohokagakucale.firebaseapp.com",
@@ -104,186 +142,202 @@
     firebase.initializeApp(firebaseConfig);
     const firestore = firebase.firestore();
 
+    // 内部状態
     let allAssignments = [];
+    let dateCounts = {}; // YYYY-MM-DD -> count
     let pendingSnapshotTimer = null;
-    let latestSnapshotData = null;
+    let latestSnapshot = null;
     let calendar = null;
-    let lastEventsHash = null;
-
     const loadingEl = document.getElementById('loading');
-    function showLoading(show) { loadingEl.style.display = show ? 'block' : 'none'; }
+
+    function showLoading(flag) { loadingEl.style.display = flag ? 'block' : 'none'; }
 
     function getEventDate(item) {
+      if (!item) return null;
       if (item.date) return item.date;
-      if (item.deadline) return item.deadline.split(" ")[0];
+      if (item.deadline) return item.deadline.split(' ')[0];
       return null;
     }
+
     function getTimeLabel(item) {
-      if (item.allDay) return "終日";
+      if (!item) return '';
+      if (item.allDay) return '終日';
       if (item.startTime && item.endTime) return `${item.startTime}〜${item.endTime}`;
       if (item.startTime) return `${item.startTime}〜`;
       if (item.deadline) {
-        const t = item.deadline.split(" ")[1];
-        return t ? `${t} 締切` : "終日";
+        const t = item.deadline.split(' ')[1];
+        return t ? `${t} 締切` : '終日';
       }
-      return "終日";
+      return '終日';
     }
 
-    // 差分チェック用ハッシュ（簡易）
-    function eventsHash(events) {
-      return events.map(e => `${e.start}|${e.title}`).sort().join('|');
-    }
-
-    function scheduleSnapshotUpdate(data) {
-      latestSnapshotData = data;
+    // スナップショットのデバウンス
+    function scheduleSnapshotUpdate(snapshot) {
+      latestSnapshot = snapshot;
       if (pendingSnapshotTimer) clearTimeout(pendingSnapshotTimer);
       pendingSnapshotTimer = setTimeout(() => {
-        applySnapshotData(latestSnapshotData);
+        applySnapshot(latestSnapshot);
         pendingSnapshotTimer = null;
-        latestSnapshotData = null;
-      }, 250);
+        latestSnapshot = null;
+      }, 220);
     }
 
-    function applySnapshotData(snapshot) {
+    // スナップショットを適用：イベント配列と日付カウントを作る
+    function applySnapshot(snapshot) {
       showLoading(true);
       const events = [];
       const assignments = [];
+      const counts = {};
+
       snapshot.forEach(doc => {
         const data = doc.data();
         const dateStr = getEventDate(data);
         if (!dateStr) return;
         data._id = doc.id;
         assignments.push(data);
-        events.push({ title: data.subject || data.title || "予定", start: dateStr, allDay: true, color: (dateStr === (new Date().toISOString().split('T')[0]) ? '#C2410C' : '#E8590C') });
+
+        // FullCalendar 用イベント（全期間表示）
+        events.push({
+          id: data._id,
+          title: data.subject || data.title || '予定',
+          start: dateStr,
+          allDay: true,
+          extendedProps: { raw: data }
+        });
+
+        counts[dateStr] = (counts[dateStr] || 0) + 1;
       });
 
-      // 差分チェック：同じなら再描画をスキップ
-      const h = eventsHash(events);
-      if (h !== lastEventsHash) {
-        lastEventsHash = h;
-        calendar.removeAllEvents();
-        calendar.addEventSource(events);
-      }
-
       allAssignments = assignments;
+      dateCounts = counts;
+
+      // カレンダーのイベントを差分更新（簡易）
+      calendar.removeAllEvents();
+      calendar.addEventSource(events);
+
+      // 再描画して日セルの長方形を更新
+      calendar.render();
+
+      // 選択中の日付を再表示（今日をデフォルト）
       const todayStr = new Date().toISOString().split('T')[0];
       updateTimeline(todayStr);
-      // 小さな遅延で loading を消す（UX）
-      setTimeout(()=>showLoading(false), 120);
+
+      // UX: 少し遅延してローディングを消す
+      setTimeout(() => showLoading(false), 120);
+    }
+
+    // 日セルに長方形を描画する（FullCalendar の dayCellDidMount を利用）
+    function dayCellDidMount(arg) {
+      // arg.dateStr は YYYY-MM-DD
+      const dateStr = arg.date.toISOString().split('T')[0];
+      const count = dateCounts[dateStr] || 0;
+
+      // 既に要素がある場合はクリア
+      const existing = arg.el.querySelector('.day-count-wrap');
+      if (existing) existing.remove();
+
+      // 作成
+      const wrap = document.createElement('div');
+      wrap.className = 'day-count-wrap';
+      // 表示する長方形の数は最大 --rect-max
+      const maxRects = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rect-max')) || 8;
+      const displayCount = Math.min(count, maxRects);
+
+      for (let i = 0; i < displayCount; i++) {
+        const r = document.createElement('span');
+        r.className = 'day-rect';
+        // 幅は可変にして視覚的に見やすく
+        r.style.minWidth = `${12 + Math.min(10, displayCount) }px`;
+        wrap.appendChild(r);
+      }
+
+      if (count > maxRects) {
+        // 多い場合は最後に「…」風の長方形（数字ではなく視覚的）
+        const more = document.createElement('span');
+        more.className = 'day-rect more';
+        more.textContent = '…';
+        wrap.appendChild(more);
+      }
+
+      // 追加（日付番号の下あたり）
+      // FullCalendar の day cell 内に入れる位置を調整
+      const frame = arg.el.querySelector('.fc-daygrid-day-frame') || arg.el;
+      frame.appendChild(wrap);
     }
 
     // カレンダー初期化
-    liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
-      if (!liff.isLoggedIn()) { liff.login(); return; }
-      const userId = liff.getContext().userId;
-      firestore.collection("users").doc(userId).get().then(userDoc => {
-        if (!userDoc.exists) {
-          document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">LINE側でグループ登録を行ってください。</p>`;
-          return;
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ja',
+        height: '100%',
+        handleWindowResize: true,
+        headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+        dayMaxEventRows: 3,
+        dayMaxEvents: true,
+        eventDisplay: 'block',
+        // 日セルが描画されるたびに呼ばれる（データに応じて長方形を描画）
+        dayCellDidMount: dayCellDidMount,
+        // イベントクリックでリスト側に詳細を表示
+        eventClick: function(info) {
+          const raw = info.event.extendedProps.raw || {};
+          showDetail(raw);
         }
-        const groupId = userDoc.data().groupId;
-        document.getElementById('group-tag').innerText = `GROUP · ${groupId}`;
-
-        const calendarEl = document.getElementById('calendar');
-        calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          locale: 'ja',
-          height: '100%',
-          handleWindowResize: true,
-          headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-          dayMaxEventRows: 3,
-          dayMaxEvents: true,
-          eventDisplay: 'block',
-          dateClick: function(info){ updateTimeline(info.dateStr); }
-        });
-        calendar.render();
-
-        // Firestore 購読（全期間のイベントを表示）
-        firestore.collection("groups").doc(groupId).collection("assignments")
-          .onSnapshot(snapshot => scheduleSnapshotUpdate(snapshot), err => {
-            document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">データ購読に失敗しました: ${err.message}</p>`;
-          });
-      }).catch(err => {
-        document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">ユーザー情報の取得に失敗しました: ${err.message}</p>`;
       });
-    }).catch(err => {
-      document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:#C2410C;padding:12px 0">LIFF 起動に失敗しました: ${err.message}</p>`;
-    });
+      calendar.render();
+    }
 
+    // 日付を選択したときのリスト表示
     function updateTimeline(dateStr) {
       const titleEl = document.getElementById('selected-date-title');
       const listEl = document.getElementById('timeline-list');
-      const badgeEl = document.getElementById('task-count-badge');
       const parts = dateStr.split('-');
       titleEl.innerText = `${parseInt(parts[1],10)}月${parseInt(parts[2],10)}日の課題`;
 
       const filtered = allAssignments.filter(item => getEventDate(item) === dateStr);
-      badgeEl.innerText = `${filtered.length}件`;
-
-      if (filtered.length === 0) {
+      if (!filtered || filtered.length === 0) {
         listEl.innerHTML = `<p style="text-align:center;color:var(--muted);padding:32px 0">この日の締め切りはありません。</p>`;
         return;
       }
 
-      // DOM 更新は requestAnimationFrame で行う（滑らかに）
-      window.requestAnimationFrame(() => {
-        listEl.innerHTML = '';
-        const todayStr = new Date().toISOString().split('T')[0];
-        const isToday = dateStr === todayStr;
+      // 今日のものは強調（大きめカード）
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isToday = dateStr === todayStr;
 
-        // 今日のものは先頭に（強調）
-        const todayItems = filtered.filter(i => getEventDate(i) === todayStr);
-        const otherItems = filtered.filter(i => getEventDate(i) !== todayStr);
+      listEl.innerHTML = '';
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        if (isToday) card.style.borderLeftColor = 'var(--orange-deep)';
 
-        const renderItem = (item, highlight) => {
-          const div = document.createElement('div');
-          div.className = highlight ? 'card card-today' : 'card';
-          const timeLabel = getTimeLabel(item);
-          const tag = item.subject || item.type || '未設定';
-          const thanksCount = (item.thankedBy && Array.isArray(item.thankedBy)) ? item.thankedBy.length : 0;
+        const timeLabel = getTimeLabel(item);
+        const subject = item.subject || item.type || '未設定';
 
-          div.innerHTML = `
-            <div class="card-row">
-              <div class="tag">${escapeHtml(tag)}</div>
-              <div class="time">${escapeHtml(timeLabel)}</div>
-            </div>
-            <div class="title">${escapeHtml(item.title || '無題')}</div>
-            ${item.content ? `<div class="content">${escapeHtml(item.content)}</div>` : ''}
-            <div class="actions">
-              <button class="btn btn--link" data-action="thanks" data-id="${escapeHtml(item._id)}">感謝</button>
-              <div class="badge">${thanksCount} 件</div>
-              <button class="btn" data-action="open" data-id="${escapeHtml(item._id)}">詳細</button>
-            </div>
-          `;
-          // イベントリスナ（delegation でも可）
-          const thanksBtn = div.querySelector('button[data-action="thanks"]');
-          thanksBtn.addEventListener('click', () => {
-            // UI 側は即時に小さなフィードバック
-            thanksBtn.disabled = true;
-            thanksBtn.style.opacity = '0.6';
-            // Postback は LINE のメッセージ送信経由なのでここでは LIFF から直接送ることはできない。
-            // 代替：LIFF からサーバーに直接 HTTP リクエストを送るエンドポイントを用意している場合は呼ぶ。
-            // ここではユーザーに「LINEで感謝ボタンを押してください」と案内する代替メッセージを表示。
-            // ただし、onSnapshot により感謝数は自動で更新されるため、UIは購読で反映される。
-            showTemporaryNotice('感謝を送信しました。反映まで少しお待ちください。');
-          });
-          const openBtn = div.querySelector('button[data-action="open"]');
-          openBtn.addEventListener('click', () => {
-            // 詳細表示や外部リンクへ誘導する場合はここで処理
-            showTemporaryNotice('詳細はLINEの「課題一覧」から操作してください。');
-          });
-          return div;
-        };
-
-        // 今日を先に
-        todayItems.forEach(it => listEl.appendChild(renderItem(it, true)));
-        otherItems.forEach(it => listEl.appendChild(renderItem(it, false)));
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="font-weight:800;color:var(--orange-deep);background:#fff6f0;padding:6px 8px;border-radius:6px">${escapeHtml(subject)}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted)">${escapeHtml(timeLabel)}</div>
+          </div>
+          <div class="task-title">${escapeHtml(item.title || '無題')}</div>
+          ${item.content ? `<div class="task-meta">${escapeHtml(item.content)}</div>` : ''}
+        `;
+        listEl.appendChild(card);
       });
+
+      // スクロールトップ
+      listEl.scrollTop = 0;
+    }
+
+    function showDetail(raw) {
+      // 簡易モーダル代替の通知（LIFF内で詳細操作はLINE側の課題一覧から行う想定）
+      const msg = `${raw.subject || '未設定'} — ${raw.title || '無題'}\n${raw.deadline || raw.date || ''}`;
+      showTemporaryNotice(msg);
     }
 
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
+      return String(str).replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]);
     }
 
     // 簡易通知
@@ -295,6 +349,42 @@
       document.body.appendChild(el);
       setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 1800);
     }
+
+    // 初期化と Firestore 購読
+    (function bootstrap(){
+      initCalendar();
+      showLoading(true);
+
+      // LIFF 初期化（LIFF ID は既存のものを使用）
+      liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const userId = liff.getContext().userId;
+
+        // ユーザー情報取得（グループID表示）
+        firestore.collection('users').doc(userId).get().then(userDoc => {
+          if (!userDoc.exists) {
+            document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">LINE側でグループ登録を行ってください。</p>`;
+            showLoading(false);
+            return;
+          }
+          const groupId = userDoc.data().groupId || '';
+          document.getElementById('group-tag').innerText = `GROUP · ${groupId}`;
+
+          // assignments コレクションを購読（全期間表示）
+          firestore.collection('groups').doc(groupId).collection('assignments')
+            .onSnapshot(snapshot => scheduleSnapshotUpdate(snapshot), err => {
+              document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">データ購読に失敗しました: ${err.message}</p>`;
+              showLoading(false);
+            });
+        }).catch(err => {
+          document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">ユーザー情報の取得に失敗しました: ${err.message}</p>`;
+          showLoading(false);
+        });
+      }).catch(err => {
+        document.getElementById('timeline-list').innerHTML = `<p style="text-align:center;color:var(--orange-deep);padding:12px 0">LIFF 起動に失敗しました: ${err.message}</p>`;
+        showLoading(false);
+      });
+    })();
   </script>
 </body>
 </html>

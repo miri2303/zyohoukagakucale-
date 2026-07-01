@@ -24,18 +24,19 @@
   <script>
     // 💡 1. Firebaseの初期設定（自分のコンソールの値に変えてね）
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "...",
-      appId: "..."
+      apiKey: "AIzaSyAFrehcz96W-wPS3-1ibSZpaPMefxHFHG0",
+      authDomain: "zyohokagakucale.firebaseapp.com",
+      projectId: "zyohokagakucale",
+      storageBucket: "zyohokagakucale.firebasestorage.app",
+      messagingSenderId: "261465620234",
+      appId: "1:261465620234:web:673d61758162d9009f04f3",
+      measurementId: "G-PW8S7FHC19"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // 💡 2. LIFFの初期化とデータのリアルタイム読み込み
-    liff.init({ liffId: "YOUR_LIFF_ID" }).then(() => {
+    liff.init({ liffId: "2010567491-tcVJc1Jt" }).then(() => {
       if (!liff.isLoggedIn()) {
         liff.login();
         return;

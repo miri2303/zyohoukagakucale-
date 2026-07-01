@@ -51,9 +51,8 @@
         
         const userData = userDoc.data();
         const groupId = userData.groupId;
-        const userClass = userData.class || "全員";
         
-        document.getElementById("group-tag").innerText = `クラス: ${userClass} | ID: ${groupId}`;
+        document.getElementById("group-tag").innerText = `GROUP ID: ${groupId}`;
 
         const calendarEl = document.getElementById('calendar');
         const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -68,22 +67,19 @@
         });
         calendar.render();
 
+        // フィルターを外してグループに紐づくすべての課題をカレンダーにリアルタイムマッピング
         db.collection("groups").doc(groupId).collection("assignments")
           .onSnapshot((snapshot) => {
             const events = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
-              
-              // ユーザーの所属クラス、または「全員」宛ての課題のみ表示
-              if (data.target === "全員" || data.target === userClass) {
-                const datePart = data.deadline ? data.deadline.split(" ")[0] : null;
-                if (datePart) {
-                  events.push({
-                    title: `[${data.subject}] ${data.title}`,
-                    start: datePart, 
-                    color: '#e11d48' 
-                  });
-                }
+              const datePart = data.deadline ? data.deadline.split(" ")[0] : null;
+              if (datePart) {
+                events.push({
+                  title: `[${data.subject}] ${data.title}`,
+                  start: datePart, 
+                  color: '#e11d48' 
+                });
               }
             });
             calendar.removeAllEvents();
